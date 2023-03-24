@@ -1,0 +1,7 @@
+create_table("notes") {
+  t.Column("id","integer",{primary:true})
+  t.Column("user_id","integer",{})
+  t.Column("title", "string", {})
+  t.Column("content", "string", {"size":1024})
+  t.Column("removal_date", "date", {})
+}

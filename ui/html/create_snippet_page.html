@@ -1,0 +1,57 @@
+{{template "base" .}}
+
+{{define "header"}}
+<h1><a href='/'>Snippetbox</a></h1>
+{{end}}
+{{define "auth"}}
+    {{if  .IsAuthenticated}}
+        <a class="login" href="/user/logout">Logout</a>
+    {{else}}
+        <a class="login" href="/user/login">Login</a>
+    {{end}}
+{{end}}
+
+{{define "content"}}
+    <form class="needs-validation" action="/snippet/new" method="post" novalidate >
+        <div class="mb-3">
+            <label for="exampleFormControlInput1" class="form-label">Title</label>
+            <input type="text" class="form-control" name="title" id="exampleFormControlInput1" required>
+            <div class="invalid-feedback">
+                Enter title.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="exampleFormControlTextarea1" class="form-label">Content</label>
+            <textarea class="form-control" name="content" id="exampleFormControlTextarea1" rows="3"></textarea>
+        </div>
+        <div class="container c1">
+            <div class="row">
+                <div class="col-4 r1">
+                    <p>Delete time</p>
+                </div>
+                <div class="col-8">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input green" type="radio" name="delete_time" id="inlineRadio1" value="week" checked>
+                        <label class="form-check-label" for="inlineRadio1">week</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input green" type="radio" name="delete_time" id="inlineRadio2" value="month">
+                        <label class="form-check-label" for="inlineRadio2">month</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input green" type="radio" name="delete_time" id="inlineRadio3" value="year">
+                        <label class="form-check-label" for="inlineRadio3">year</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary b1">Submit</button>
+        </div>
+    </form>
+{{end}}
+
+{{define "footer"}}
+<footer>Made with <strong>Golang</strong></footer>
+{{end}}
+

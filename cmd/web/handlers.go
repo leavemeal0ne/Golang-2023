@@ -1,61 +1,89 @@
 package main
 
 import (
-	"fmt"
-	"html/template"
+	"errors"
+	"github.com/leavemeal0ne/Golang-2023/internal/database"
+	"github.com/leavemeal0ne/Golang-2023/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
-	"strconv"
+	"time"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
+var db *database.DbRepo
 
-	files := []string{
-		"./ui/html/home_page.html",
-		"./ui/html/base_layout_tmpl.html",
-		"./ui/html/footer_partial.html",
+func getDatabase(repo *database.DbRepo) {
+	db = repo
+}
+func Home(w http.ResponseWriter, r *http.Request) {
+	var data []models.Notes
+	var err error = errors.New("new User")
+	if session.Exists(r.Context(), "user_id") {
+		log.Println(session.Get(r.Context(), "user_id"))
+		data, err = db.GetNotesByUserId(session.Get(r.Context(), "user_id").(int))
+		template_data.IsAuthenticated = true
 	}
-
-	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", 500)
-		return
+		log.Println(err)
+		log.Println(r.RemoteAddr)
+	} else {
+		log.Println(" data from session ", data)
 	}
-
-	err = ts.Execute(w, nil)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server error", 500)
-	}
+	template_data.Payload = data
+	RenderTemplate(w, "home_page.html", &template_data)
 }
 
-func showSnippet(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil || id < 1 {
-		http.NotFound(w, r)
-		return
-	}
-
-	_, err = fmt.Fprintf(w, "Snippet with id %d...", id)
-	if err != nil {
-		return
-	}
+func NewSnippet(w http.ResponseWriter, r *http.Request) {
+	RenderTemplate(w, "create_snippet_page.html", &template_data)
 }
 
-func createSnippet(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "Method not allow", 405)
+func CreateSnippet(w http.ResponseWriter, r *http.Request) {
+	note := models.Notes{
+		UserID:      session.Get(r.Context(), "user_id").(int),
+		Title:       r.FormValue("title"),
+		Content:     r.FormValue("content"),
+		RemovalDate: time.Now(),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err := db.InsertNote(note)
+	if err != nil {
+		log.Println(err)
+		log.Println("insert error")
+	}
+	RenderTemplate(w, "create_snippet_page.html", &template_data)
+}
+
+func Login(w http.ResponseWriter, r *http.Request) {
+	template_data.ErrorValues = nil
+	RenderTemplate(w, "login_page.html", &template_data)
+}
+
+func Authentication(w http.ResponseWriter, r *http.Request) {
+	_ = app.Session.RenewToken(r.Context())
+	user, err := db.GetUserByEmail(r.FormValue("email"))
+	template_data.ErrorValues = &models.MissingValues{Email: true, Passwd: true}
+	if err != nil {
+		template_data.ErrorValues.Email = false
+		RenderTemplate(w, "login_page.html", &template_data)
+		return
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password_hash), []byte(r.FormValue("passwd")))
+	if err != nil {
+		template_data.ErrorValues.Passwd = false
+		RenderTemplate(w, "login_page.html", &template_data)
 		return
 	}
 
-	_, err := w.Write([]byte("Create new note..."))
-	if err != nil {
-		return
-	}
+	app.Session.Put(r.Context(), "user_id", user.ID)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	_ = app.Session.Destroy(r.Context())
+	_ = app.Session.RenewToken(r.Context())
+	template_data.IsAuthenticated = false
+	log.Println()
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

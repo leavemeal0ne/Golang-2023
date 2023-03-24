@@ -1,0 +1,1 @@
+drop_index("notes","notes_user_id_idx")

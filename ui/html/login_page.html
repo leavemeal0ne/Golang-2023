@@ -1,0 +1,58 @@
+{{template "base" .}}
+
+{{define "header"}}
+<h1><a href='/'>Snippetbox</a></h1>
+{{end}}
+
+{{define "auth"}}
+    {{if  .IsAuthenticated}}
+        <a class="login" href="/user/logout">Logout</a>
+    {{else}}
+        <a class="login" href="/user/login">Login</a>
+    {{end}}
+{{end}}
+
+{{define "content"}}
+    <form class="needs-validation" action="/user/login" method="post" novalidate>
+        <div class="mb-3">
+            <label for="exampleFormControlInput1" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="exampleFormControlInput1" name="email" placeholder="name@example.com" required>
+            <div class="invalid-feedback">
+                Enter email.
+            </div>
+            <div class="invalid-data">
+                {{if  .ErrorValues}}
+                    {{if not .ErrorValues.Email}}
+                        wrong email
+                    {{end}}
+                {{end}}
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="inputPassword5" class="form-label">Password</label>
+            <input type="password" id="inputPassword5" class="form-control" name="passwd" aria-labelledby="passwordHelpBlock" required>
+            <div id="passwordHelpBlock" class="form-text"></div>
+            <div class="invalid-feedback">
+                Enter password.
+            </div>
+            <div class="invalid-data">
+                {{if  .ErrorValues}}
+                    {{if not .ErrorValues.Passwd}}
+                        wrong password
+                    {{end}}
+                {{end}}
+            </div>
+
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary b1">Submit</button>
+            <a class="rght btn btn-primary b1" href="/user/sign_up" role="button">Sign Up!</a>
+        </div>
+
+    </form>
+{{end}}
+
+{{define "footer"}}
+<footer>Made with <strong>Golang</strong></footer>
+{{end}}
+

@@ -1,8 +1,44 @@
 {{template "base" .}}
 
-{{define "title"}}Home page{{end}}
-
-{{define "main"}}
-<h2>Last notes</h2>
-<p>...</p>
+{{define "header"}}
+    <h1><a href='/'>Snippetbox</a></h1>
 {{end}}
+
+{{define "auth"}}
+    {{if  .IsAuthenticated}}
+        <a class="login" href="/user/logout">Logout</a>
+    {{else}}
+        <a class="login" href="/user/login">Login</a>
+    {{end}}
+{{end}}
+
+{{define "content"}}
+    {{if .IsAuthenticated}}
+        {{range $data := .Payload}}
+            <div class='snippet'>
+                <div class='metadata'>
+                    <strong>{{$data.Title}}</strong>
+                    <span>#{{$data.ID}}</span>
+                </div>
+                <textarea class="textarea">{{$data.Content}}</textarea>
+                <div class='metadata'>
+                    <time>Executed: {{$data.ParseDate $data.RemovalDate}}</time>
+                </div>
+            </div>
+        {{end}}
+    {{else}}
+        <div class="fluid-container">
+            <div class="row py-3">
+                <div class="column col-12 text-center">
+                    Login or Sign Up to watch notes
+                </div>
+            </div>
+        </div>
+        <div style="width:100%;height:0;padding-bottom:75%;position:relative;"><iframe src="https://giphy.com/embed/hDSy8w6rGHeTe" width="100%" height="100%" style="position:absolute" frameBorder="0" class="giphy-embed" allowFullScreen></iframe></div><p><a href="https://giphy.com/gifs/cartoon-hDSy8w6rGHeTe"></a></p>
+    {{end}}
+{{end}}
+
+{{define "footer"}}
+    <footer>Made with <strong>Golang</strong></footer>
+{{end}}
+
