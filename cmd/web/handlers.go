@@ -41,7 +41,10 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Snippet with id %d...", id)
+	_, err = fmt.Fprintf(w, "Snippet with id %d...", id)
+	if err != nil {
+		return
+	}
 }
 
 func createSnippet(w http.ResponseWriter, r *http.Request) {
@@ -51,5 +54,8 @@ func createSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("Create new note..."))
+	_, err := w.Write([]byte("Create new note..."))
+	if err != nil {
+		return
+	}
 }
