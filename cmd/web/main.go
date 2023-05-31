@@ -69,6 +69,9 @@ func main() {
 	db, err := driver.ConnectSQL(fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", EnvConfig.DBHost,
 		EnvConfig.DBPort, EnvConfig.DBName, EnvConfig.DBUserName, EnvConfig.DBUserPassword))
 
+	log.Println(fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", EnvConfig.DBHost,
+		EnvConfig.DBPort, EnvConfig.DBName, EnvConfig.DBUserName, EnvConfig.DBUserPassword))
+
 	getDatabase(&database.DbRepo{DB: db})
 	helpers.GetDatabase(&database.DbRepo{DB: db})
 	app.BD = db
@@ -87,7 +90,7 @@ func main() {
 	}
 
 	log.Println("Start: http://127.0.0.1:4000")
-	err = http.ListenAndServe(":4000", routes(&app))
+	err = http.ListenAndServe(":8000", routes(&app))
 	if err != nil {
 		log.Fatal("Start server Error")
 	}
