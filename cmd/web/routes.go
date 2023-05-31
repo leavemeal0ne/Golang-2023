@@ -2,11 +2,10 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/leavemeal0ne/Golang-2023/internal/config"
 	"net/http"
 )
 
-func routes(app *config.Config) http.Handler {
+func routes() http.Handler {
 
 	mux := chi.NewRouter()
 	mux.Use(SessionLoad)
@@ -20,7 +19,7 @@ func routes(app *config.Config) http.Handler {
 
 	//api
 	mux.Post("/api/user/signup", SignUpJson)
-	mux.Get("/api/user/login", SignIn)
+	mux.Post("/api/user/login", SignIn)
 	mux.Get("/api/snippet/get_all", GetAllNotes)
 	mux.Post("/api/snippet/new", ApiNewSnippet)
 	mux.Patch("/api/snippet/update", ApiUpdateSnippet)
