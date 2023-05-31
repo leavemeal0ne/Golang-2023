@@ -143,10 +143,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllNotes(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		http.Error(w, "Expecting content type application/json", http.StatusUnsupportedMediaType)
-		return
-	}
+
 	var data []models.Notes
 	var err error
 
