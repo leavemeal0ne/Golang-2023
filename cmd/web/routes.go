@@ -15,9 +15,11 @@ func routes(app *config.Config) http.Handler {
 	mux.Get("/user/login", Login)
 	mux.Get("/user/logout", Logout)
 	mux.Post("/user/login", Authentication)
+	mux.Get("/user/signup", SignUp)
+	mux.Post("/user/signup", SignUpValidate)
 
 	//api
-	mux.Get("/api/user/signup", SignUpJson)
+	mux.Post("/api/user/signup", SignUpJson)
 	mux.Get("/api/user/login", SignIn)
 	mux.Get("/api/snippet/get_all", GetAllNotes)
 	mux.Post("/api/snippet/new", ApiNewSnippet)
@@ -28,6 +30,7 @@ func routes(app *config.Config) http.Handler {
 		r.Use(Auth)
 		r.Get("/new", NewSnippet)
 		r.Post("/new", CreateSnippet)
+		r.Get("/delete/{id}", DeleteSnippet)
 	})
 	fileServer := http.FileServer(http.Dir("./ui/static"))
 	mux.Handle("/static/*", http.StripPrefix("/static", fileServer))

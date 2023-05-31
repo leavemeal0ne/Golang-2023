@@ -23,6 +23,7 @@
                 <textarea class="textarea">{{$data.Content}}</textarea>
                 <div class='metadata'>
                     <time>Executed: {{$data.ParseDate $data.RemovalDate}}</time>
+                    <a class="rght btn btn-primary b3" href="/snippet/delete/{{$data.ID}}" role="button">Delete</a>
                 </div>
             </div>
         {{end}}

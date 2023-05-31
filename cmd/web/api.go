@@ -69,6 +69,7 @@ func SignUpJson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse, err := json.Marshal(response)
+	w.WriteHeader(http.StatusOK)
 	if err != nil {
 		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
 		return

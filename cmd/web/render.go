@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"time"
 )
 
 // RenderTemplate renders a template
@@ -38,10 +37,6 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, data any) {
 	if err != nil {
 		log.Println(err)
 	}
-}
-func parseDate(date time.Time) time.Time {
-	result, _ := time.Parse("2006-01-02", date.String())
-	return result
 }
 
 func createTemplateCache() (map[string]*template.Template, error) {
