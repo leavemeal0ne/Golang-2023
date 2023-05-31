@@ -89,7 +89,6 @@ func main() {
 		log.Fatal("Start server error")
 	}
 
-	log.Println("Start: http://127.0.0.1:4000")
 	err = http.ListenAndServe(":8000", routes(&app))
 	if err != nil {
 		log.Fatal("Start server Error")

@@ -230,6 +230,7 @@ func ApiNewSnippet(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
+		w.WriteHeader(http.StatusBadRequest)
 		response = Response{
 			Message: "need authentication firstly",
 		}
