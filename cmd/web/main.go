@@ -89,7 +89,7 @@ func main() {
 		log.Fatal("Start server error")
 	}
 
-	err = http.ListenAndServe(":8000", routes(&app))
+	err = http.ListenAndServe(":8000", routes())
 	if err != nil {
 		log.Fatal("Start server Error")
 	}
