@@ -1,42 +1,22 @@
-package database
+package repositories
 
 import (
 	"context"
 	"github.com/leavemeal0ne/Golang-2023/internal/driver"
 	"github.com/leavemeal0ne/Golang-2023/internal/models"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"time"
 )
 
-type DbRepo struct {
+type NoteRepository struct {
 	DB *driver.DB
 }
 
-func (m *DbRepo) InsertUser(user models.Users) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password_hash), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	stmt := `insert into users(email, password_hash,created_at, updated_at) values ($1, $2, $3, $4)`
-
-	_, err = m.DB.SQL.ExecContext(ctx, stmt,
-		user.Email,
-		hash,
-		time.Now(),
-		time.Now(),
-	)
-	if err != nil {
-		return err
-	}
-	return nil
+func NewNoteRepository(DB *driver.DB) *NoteRepository {
+	return &NoteRepository{DB}
 }
 
-func (m *DbRepo) InsertNote(note models.Notes) error {
+func (m *NoteRepository) InsertNote(note models.Notes) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -56,7 +36,7 @@ func (m *DbRepo) InsertNote(note models.Notes) error {
 	return nil
 }
 
-func (m *DbRepo) GetNotesByUserId(id int) ([]models.Notes, error) {
+func (m *NoteRepository) GetNotesByUserId(id int) ([]models.Notes, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -92,61 +72,12 @@ func (m *DbRepo) GetNotesByUserId(id int) ([]models.Notes, error) {
 	return notes, nil
 }
 
-func (m *DbRepo) GetUserByEmail(email string) (models.Users, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	var user models.Users
-	user.Email = email
-
-	query := `
-				select 
-					id, password_hash
-				from 
-				    users
-				where 
-					email = $1`
-
-	row := m.DB.SQL.QueryRowContext(ctx, query, email)
-	err := row.Scan(
-		&user.ID,
-		&user.Password_hash,
-	)
-	if err != nil {
-		log.Println(err)
-		return models.Users{}, err
-	}
-
-	return user, nil
-}
-
-func (m *DbRepo) IsContainsUserByEmail(email string) bool {
-	_, err := m.GetUserByEmail(email)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-func (m *DbRepo) GetUserByEmailAndPassword(email, password string) (models.Users, error) {
-	user, err := m.GetUserByEmail(email)
-	if err != nil {
-		return models.Users{}, err
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password_hash), []byte(password))
-	if err != nil {
-		return models.Users{}, err
-	}
-	return user, nil
-}
-
-func (m *DbRepo) GetNoteByUserIdNoteId(note_id int, user_id int) (models.Notes, error) {
+func (m *NoteRepository) GetNoteByUserIdNoteId(noteId int, userId int) (models.Notes, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	var note models.Notes
-	note.ID = note_id
+	note.ID = noteId
 
 	query := `
 				select 
@@ -156,7 +87,7 @@ func (m *DbRepo) GetNoteByUserIdNoteId(note_id int, user_id int) (models.Notes, 
 				where 
 					id = $1`
 
-	row := m.DB.SQL.QueryRowContext(ctx, query, note_id)
+	row := m.DB.SQL.QueryRowContext(ctx, query, noteId)
 	err := row.Scan(
 		&note.UserID,
 	)
@@ -165,7 +96,7 @@ func (m *DbRepo) GetNoteByUserIdNoteId(note_id int, user_id int) (models.Notes, 
 		log.Println(err)
 		return models.Notes{}, err
 	}
-	if note.UserID == user_id {
+	if note.UserID == userId {
 		return note, nil
 	} else {
 		return note, nil
@@ -173,7 +104,7 @@ func (m *DbRepo) GetNoteByUserIdNoteId(note_id int, user_id int) (models.Notes, 
 
 }
 
-func (m *DbRepo) DeleteNoteById(id int) error {
+func (m *NoteRepository) DeleteNoteById(id int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `delete from notes where id = $1`
@@ -188,7 +119,7 @@ func (m *DbRepo) DeleteNoteById(id int) error {
 
 }
 
-func (m *DbRepo) UpdateNote(note models.Notes) error {
+func (m *NoteRepository) UpdateNote(note models.Notes) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

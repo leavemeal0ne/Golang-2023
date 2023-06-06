@@ -3,21 +3,20 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/alexedwards/scs/v2"
 	"github.com/leavemeal0ne/Golang-2023/internal/config"
-	"github.com/leavemeal0ne/Golang-2023/internal/database"
 	"github.com/leavemeal0ne/Golang-2023/internal/driver"
+	"github.com/leavemeal0ne/Golang-2023/internal/handlers"
 	"github.com/leavemeal0ne/Golang-2023/internal/helpers"
-	"github.com/leavemeal0ne/Golang-2023/internal/models"
+	"github.com/leavemeal0ne/Golang-2023/internal/middleware"
+	"github.com/leavemeal0ne/Golang-2023/internal/repositories"
+	"github.com/leavemeal0ne/Golang-2023/internal/router"
+	"github.com/leavemeal0ne/Golang-2023/internal/services"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
-	"time"
 )
 
 var app config.Config
-var session *scs.SessionManager
-var template_data *models.TemplateData
 var EnvConfig EnvConfigModel
 
 type EnvConfigModel struct {
@@ -49,15 +48,9 @@ func main() {
 		log.Fatalln("Failed to load environment variables!", err.Error())
 	}
 
-	app = config.Config{}
-	template_data = &models.TemplateData{}
-	session = scs.New()
-	session.Lifetime = 24 * time.Hour
-	session.Cookie.Persist = true
-	session.Cookie.SameSite = http.SameSiteLaxMode
-	session.Cookie.Secure = true
+	app = *config.NewAppConfig()
 
-	app.Session = session
+	middleware.SetSession(app.Session)
 
 	tc, err := createTemplateCache()
 	if err != nil {
@@ -72,9 +65,6 @@ func main() {
 	log.Println(fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", EnvConfig.DBHost,
 		EnvConfig.DBPort, EnvConfig.DBName, EnvConfig.DBUserName, EnvConfig.DBUserPassword))
 
-	getDatabase(&database.DbRepo{DB: db})
-	helpers.GetDatabase(&database.DbRepo{DB: db})
-	app.BD = db
 	defer func(SQL *sql.DB) {
 		err := SQL.Close()
 		if err != nil {
@@ -82,14 +72,27 @@ func main() {
 		}
 	}(db.SQL)
 
-	helpers.HelpersConfig(&app)
-
 	if err != nil {
 		log.Println(err)
 		log.Fatal("Start server error")
 	}
 
-	err = http.ListenAndServe(":8000", routes())
+	helper := helpers.NewHelper(&app)
+
+	noteRepository := repositories.NewNoteRepository(db)
+	userRepository := repositories.NewUserRepository(db)
+
+	noteService := services.NewNoteService(noteRepository)
+	userService := services.NewUserService(userRepository)
+
+	noteHttp := handlers.NewNoteHttpHandler(noteService, &app, helper)
+	userHttp := handlers.NewUserHttpHandler(userService, &app)
+
+	newServer := router.Routes()
+
+	handlers.SetupRoutes(newServer, userHttp, noteHttp)
+
+	err = http.ListenAndServe(":8000", newServer)
 	if err != nil {
 		log.Fatal("Start server Error")
 	}

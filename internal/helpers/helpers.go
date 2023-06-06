@@ -2,41 +2,29 @@ package helpers
 
 import (
 	"github.com/leavemeal0ne/Golang-2023/internal/config"
-	"github.com/leavemeal0ne/Golang-2023/internal/database"
 	"github.com/leavemeal0ne/Golang-2023/internal/models"
 	"net/http"
 )
 
-var app config.Config
-var db *database.DbRepo
-
-func GetDatabase(repo *database.DbRepo) {
-	db = repo
-}
-func HelpersConfig(conf *config.Config) {
-	app = *conf
+type Helper struct {
+	app *config.Config
 }
 
-func IsAuthenticated(r *http.Request) bool {
-	exists := app.Session.Exists(r.Context(), "user_id")
+func NewHelper(conf *config.Config) Helper {
+	return Helper{
+		app: conf,
+	}
+}
+
+func (m *Helper) IsAuthenticated(r *http.Request) bool {
+	exists := m.app.Session.Exists(r.Context(), "user_id")
 	return exists
 }
 
-func ValidateNote(note models.Notes) bool {
+func (m *Helper) ValidateNote(note models.Notes) bool {
 	return len(note.Content) > 0 && len(note.Title) > 0
 }
 
-func ValidNoteByUser(note_id int, user_id int) bool {
-	note, err := db.GetNoteByUserIdNoteId(note_id, user_id)
-	if err != nil {
-		return false
-	}
-	if note.UserID == user_id {
-		return true
-	}
-	return false
-}
-
-func ValidateUpdateNote(note models.Notes) bool {
+func (m *Helper) ValidateUpdateNote(note models.Notes) bool {
 	return len(note.Content) > 0
 }

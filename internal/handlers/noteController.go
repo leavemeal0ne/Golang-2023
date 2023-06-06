@@ -1,156 +1,55 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/leavemeal0ne/Golang-2023/internal/config"
 	"github.com/leavemeal0ne/Golang-2023/internal/helpers"
 	"github.com/leavemeal0ne/Golang-2023/internal/models"
 	"io"
 	"log"
 	"net/http"
-	"net/mail"
 	"strconv"
 	"time"
 )
 
-type Response struct {
-	Message interface{} `json:"response"`
+type noteService interface {
+	InsertNote(note models.Notes) error
+	GetNotesByUserId(id int) ([]models.Notes, error)
+	GetNoteByUserIdNoteId(noteId int, userId int) (models.Notes, error)
+	DeleteNoteById(id int) error
+	UpdateNote(note models.Notes) error
+	ValidNoteByUser(noteId int, userId int) bool
 }
 
-func SignUpJson(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		http.Error(w, "Expecting content type application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-
-	var user models.Users
-	err = json.Unmarshal(body, &user)
-
-	if err != nil {
-		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
-		return
-	}
-	_, err = mail.ParseAddress(user.Email)
-
-	var response Response
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		response = Response{
-			Message: "Mail should be valid",
-		}
-	} else if len(user.Password_hash) <= 5 {
-		w.WriteHeader(http.StatusBadRequest)
-		response = Response{
-			Message: "too short password",
-		}
-	} else if db.IsContainsUserByEmail(user.Email) {
-		w.WriteHeader(http.StatusBadRequest)
-		response = Response{
-			Message: "Email is used",
-		}
-	} else {
-		w.WriteHeader(http.StatusOK)
-		response = Response{
-			Message: "User created",
-		}
-	}
-
-	err = db.InsertUser(user)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	jsonResponse, err := json.Marshal(response)
-	w.WriteHeader(http.StatusOK)
-	if err != nil {
-		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	// Send the response
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
-		return
-	}
-
+type NoteHttpHandler struct {
+	noteService
+	app    config.Config
+	helper helpers.Helper
 }
 
-func SignIn(w http.ResponseWriter, r *http.Request) {
-	_ = app.Session.RenewToken(r.Context())
-	if r.Header.Get("Content-Type") != "application/json" {
-		http.Error(w, "Expecting content type application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-
-	var user models.Users
-	err = json.Unmarshal(body, &user)
-
-	if err != nil {
-		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
-		return
-	}
-	_, err = mail.ParseAddress(user.Email)
-
-	var response Response
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		response = Response{
-			Message: "Mail should be valid",
-		}
-	}
-
-	result, err := db.GetUserByEmailAndPassword(user.Email, user.Password_hash)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		response = Response{
-			Message: "Wrong data",
-		}
-	}
-	app.Session.Put(r.Context(), "user_id", result.ID)
-	log.Println(session.Get(r.Context(), "user_id"))
-	response = Response{
-		Message: "Auth complete!",
-	}
-	template_data.IsAuthenticated = true
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	// Send the response
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
-		return
+func NewNoteHttpHandler(service noteService, app *config.Config, helper helpers.Helper) *NoteHttpHandler {
+	return &NoteHttpHandler{
+		noteService: service,
+		app:         *app,
+		helper:      helper,
 	}
 }
 
-func GetAllNotes(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHttpHandler) Register(router *chi.Mux) {
+	router.Get("/api/note/get_all", h.GetAllNotes)
+	router.Post("/api/note/new", h.ApiNewSnippet)
+	router.Patch("/api/note/update", h.ApiUpdateSnippet)
+	router.Delete("/api/note/delete/{id}", h.ApiDeleteSnippet)
+}
 
+func (h *NoteHttpHandler) GetAllNotes(w http.ResponseWriter, r *http.Request) {
 	var data []models.Notes
 	var err error
 
-	if session.Exists(r.Context(), "user_id") {
-		log.Println(session.Get(r.Context(), "user_id"))
-		data, err = db.GetNotesByUserId(session.Get(r.Context(), "user_id").(int))
-		template_data.IsAuthenticated = true
+	if h.app.Session.Exists(r.Context(), "user_id") {
+		log.Println(h.app.Session.Get(r.Context(), "user_id"))
+		data, err = h.noteService.GetNotesByUserId(h.app.Session.Get(r.Context(), "user_id").(int))
 	} else {
 		response := Response{
 			Message: "need authentication firstly",
@@ -183,8 +82,7 @@ func GetAllNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
-func ApiNewSnippet(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHttpHandler) ApiNewSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(w, "Expecting content type application/json", http.StatusUnsupportedMediaType)
 		return
@@ -193,9 +91,8 @@ func ApiNewSnippet(w http.ResponseWriter, r *http.Request) {
 	var response Response
 	var note models.Notes
 
-	if session.Exists(r.Context(), "user_id") {
-		log.Println(session.Get(r.Context(), "user_id"))
-		template_data.IsAuthenticated = true
+	if h.app.Session.Exists(r.Context(), "user_id") {
+		log.Println(h.app.Session.Get(r.Context(), "user_id"))
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -206,15 +103,15 @@ func ApiNewSnippet(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
 		}
-		if helpers.ValidateNote(note) {
+		if h.helper.ValidateNote(note) {
 			response = Response{
 				Message: "Note added",
 			}
-			note.UserID = session.Get(r.Context(), "user_id").(int)
+			note.UserID = h.app.Session.Get(r.Context(), "user_id").(int)
 			note.RemovalDate = time.Now()
 			note.CreatedAt = time.Now()
 			note.UpdatedAt = time.Now()
-			er := db.InsertNote(note)
+			er := h.noteService.InsertNote(note)
 			if er != nil {
 				log.Println(er)
 				response = Response{
@@ -247,13 +144,12 @@ func ApiNewSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ApiDeleteSnippet(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHttpHandler) ApiDeleteSnippet(w http.ResponseWriter, r *http.Request) {
 
 	var response Response
 
-	if session.Exists(r.Context(), "user_id") {
-		log.Println(session.Get(r.Context(), "user_id"))
-		template_data.IsAuthenticated = true
+	if h.app.Session.Exists(r.Context(), "user_id") {
+		log.Println(h.app.Session.Get(r.Context(), "user_id"))
 
 		idS := chi.URLParam(r, "id")
 
@@ -264,8 +160,8 @@ func ApiDeleteSnippet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if helpers.ValidNoteByUser(id, session.Get(r.Context(), "user_id").(int)) {
-			err := db.DeleteNoteById(id)
+		if h.noteService.ValidNoteByUser(id, h.app.Session.Get(r.Context(), "user_id").(int)) {
+			err := h.noteService.DeleteNoteById(id)
 			if err != nil {
 				http.Error(w, "Failed to parse JSON data", http.StatusInternalServerError)
 				response = Response{
@@ -303,11 +199,7 @@ func ApiDeleteSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//	{
-//		"id"
-//		"content"
-//	}
-func ApiUpdateSnippet(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHttpHandler) ApiUpdateSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(w, "Expecting content type application/json", http.StatusUnsupportedMediaType)
 		return
@@ -316,9 +208,8 @@ func ApiUpdateSnippet(w http.ResponseWriter, r *http.Request) {
 	var response Response
 	var note models.Notes
 
-	if session.Exists(r.Context(), "user_id") {
-		log.Println(session.Get(r.Context(), "user_id"))
-		template_data.IsAuthenticated = true
+	if h.app.Session.Exists(r.Context(), "user_id") {
+		log.Println(h.app.Session.Get(r.Context(), "user_id"))
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -326,16 +217,16 @@ func ApiUpdateSnippet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		err = json.Unmarshal(body, &note)
-		note.UserID = session.Get(r.Context(), "user_id").(int)
+		note.UserID = h.app.Session.Get(r.Context(), "user_id").(int)
 		if err != nil {
 			http.Error(w, "Failed to parse JSON data", http.StatusBadRequest)
 		}
-		if helpers.ValidNoteByUser(note.ID, note.UserID) {
-			if helpers.ValidateUpdateNote(note) {
+		if h.noteService.ValidNoteByUser(note.ID, note.UserID) {
+			if h.helper.ValidateUpdateNote(note) {
 				response = Response{
 					Message: "Note updated",
 				}
-				er := db.UpdateNote(note)
+				er := h.noteService.UpdateNote(note)
 				if er != nil {
 					log.Println(er)
 					response = Response{

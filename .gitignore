@@ -17,3 +17,4 @@
 .idea
 /database.yml
 /cmd/web/config.json
+/.env

@@ -9,4 +9,9 @@ test:
 .PHONY: test_cover
 test_cover:
 			go test -cover ./...
+
+.PHONY: api_test
+api_test:
+	soda reset
+	go test ./internal/api_test
 .DEFAULT.GOAL := run
